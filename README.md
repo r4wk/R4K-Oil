@@ -22,7 +22,7 @@ If you don't want to make any custom changes to the firmware, follow these very 
 - Extract the flash utility and copy the latest R4K firmware to the same folder to make life easier
 - Next you want to run the following command (In Windows open CMD app, navigate to the folder where you extracted the flash utility/firmware i.e. 'cd c:\adafruit')
   - adafruit-nrfutil dfu serial --package R4K-Oil_\<version\>.zip -p \<port\> -b 115200
-- Make sure to change \<version\> to the latest version of the R4K firmware that you downloaded from releases (i.e. R4K-Oil_v0.2.zip)
+- Make sure to change \<version\> to the latest version of the R4K firmware that you downloaded from releases (i.e. R4K-Oil_v0.2a.zip)
 - Make sure to change \<port\> to the COM port that your device is connected on: https://www.mathworks.com/help/supportpkg/arduinoio/ug/find-arduino-port-on-windows-mac-and-linux.html
 
 ## Code/PlatformIO
