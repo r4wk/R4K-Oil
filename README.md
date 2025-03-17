@@ -10,6 +10,6 @@ LoRaWAN Oil tank level sensor
 
 [RAK1901](https://store.rakwireless.com/products/rak1901-shtc3-temperature-humidity-sensor)
 
-[HC-SR04 Ultrasonic Sensor](https://www.sparkfun.com/products/15569)
+[RCWL-1601 Ultrasonic Sensor](https://www.adafruit.com/product/4007)
 
-[Pololu 5V Step-Up Voltage Regulator](https://www.pololu.com/product/2562)
+[Pololu Mini Pushbutton Power Switch with Reverse Voltage Protection, LV](https://www.pololu.com/product/2808)
