@@ -9,7 +9,7 @@
  * 
  */
 
-#include "app.h"
+#include <app.h>
 
 /** Bluetooth broadcast name */
 char g_ble_dev_name[10] = "R4K-Oil";
@@ -19,6 +19,10 @@ lora_data_s oil_lora_data;
 SHTC3 shtc3;
 /** Union to split 16 bit to 2x8bit */
 u_16 u_16lora;
+/** Failed ACK count */
+uint8_t ack_count;
+/** Warm count */
+uint8_t warm_count;
 
 /**
  * @brief Set the up app object
@@ -46,6 +50,8 @@ bool init_app(void)
   SHTC3_Status_TypeDef shtc3_status;
   bool init_result;
 
+  pinMode(WB_IO4, OUTPUT);
+  digitalWrite(WB_IO4, HIGH);
   pinMode(WB_IO2, OUTPUT);
   digitalWrite(WB_IO2, HIGH);
   pinMode(TRIG_PIN, OUTPUT);
@@ -75,7 +81,7 @@ bool init_app(void)
 
 /**
  * @brief WisBlock API event handler
- * Wake up every REST_TIME and check batt/temp/ultrasonics
+ * Wake up every REST_TIME/WARM_TIME and check batt/temp/ultrasonics
  * 
  */
 void app_event_handler(void)
@@ -85,25 +91,22 @@ void app_event_handler(void)
 	{
 	  g_task_event_type &= N_STATUS;
 
-    API_LOG("APP", "Woke up");
-    digitalWrite(WB_IO2, HIGH);
-
+    wake_up();
     read_batt_lora();
     read_shtc3();
     read_ultra();
 
     send_lora_data((uint8_t*)&oil_lora_data, sizeof(lora_data_s));
 
-    if(g_join_result)
+    if(g_join_result && warm_count >= 1)
     {
       g_lorawan_settings.send_repeat_time = REST_TIME;
       api_timer_restart(REST_TIME);
     } else {
       g_lorawan_settings.send_repeat_time = WARM_TIME;
       api_timer_restart(WARM_TIME);
+      warm_count++;
     }
-
-    digitalWrite(WB_IO2, LOW);
   }
 }
 
@@ -146,12 +149,12 @@ void read_shtc3(void)
   if(shtc3.passIDcrc) 
   {
     /** -2 Adjustment for MCU/Board heat */
-    uint8_t temp = static_cast<uint8_t>(shtc3.toDegC()-2);
+    int8_t temp = static_cast<int8_t>(shtc3.toDegC()-2);
     uint8_t humi = static_cast<uint8_t>(shtc3.toPercent()-2);
     oil_lora_data.temp = temp;
     oil_lora_data.humi = humi;
-    std::string disp = std::to_string(temp) + "C " + std::to_string(humi) + "%";
-    API_LOG("SHTC3", disp);
+    std::string disp = std::to_string(temp) + "C " + std::to_string(humi) + "%%";
+    API_LOG("SHTC3", disp.c_str());
   } else {
     API_LOG("SHTC3", "Failed checksum");
   }
@@ -205,7 +208,7 @@ void read_batt_lora(void)
   u_16lora.data = batt_level_lora;
   oil_lora_data.batt_1 = u_16lora.piece[0];
   oil_lora_data.batt_2 = u_16lora.piece[1];
-  API_LOG("BATT", batt_level_mv);
+  API_LOG("BATT", std::to_string(batt_level_mv).c_str());
 }
 
 /**
@@ -223,15 +226,81 @@ void lora_data_handler(void)
     }
   }
 
-  /** Sleep radio after each transmission has finished */
+  /** Sleep radio/sensor after each transmission has finished */
   if ((g_task_event_type & LORA_TX_FIN) == LORA_TX_FIN)
 	{
 		g_task_event_type &= N_LORA_TX_FIN;
+    if(!g_rx_fin_result)
+    {
+      API_LOG("ACK", "ACK failed");
+      uint8_t retry_count = g_join_result ? 2 : 30;
+      if(ack_count >= retry_count) { api_reset(); }
+      ack_count++;
+    } else {
+      API_LOG("ACK", "ACK recieved");
+      ack_count = 0;
+    }
     Radio.Sleep();
+    sleep();
   }
 }
 
 /**
+ * @brief Wake up sensor in a clean manner
+ * Ramp up instead of instant turning on
+ * 
+ */
+void wake_up() 
+{
+  API_LOG("APP", "Woke up");
+
+  pinMode(WB_IO2, OUTPUT);
+  digitalWrite(WB_IO2, HIGH);
+  delay(100);
+
+  pinMode(WB_IO4, OUTPUT);
+  digitalWrite(WB_IO4, LOW);
+  delay(50);
+
+  for (int i = 0; i < 5; i++) {
+      digitalWrite(WB_IO4, HIGH);
+      delay(10);
+      digitalWrite(WB_IO4, LOW);
+      delay(10);
+  }
+
+  digitalWrite(WB_IO4, HIGH);
+  delay(500);
+
+  pinMode(ECHO_PIN, INPUT);
+  delay(50);
+}
+
+/**
+ * @brief Put sensor to sleep in a safe way
+ * 
+ */
+void sleep()
+{
+  API_LOG("APP", "Went to sleep");
+
+  pinMode(ECHO_PIN, OUTPUT);
+  digitalWrite(ECHO_PIN, LOW);
+  digitalWrite(TRIG_PIN, LOW);
+
+  digitalWrite(WB_IO4, LOW);
+  delay(100);
+  pinMode(WB_IO4, INPUT);
+  delay(100);
+
+  digitalWrite(WB_IO2, LOW);
+  delay(100);
+  pinMode(WB_IO2, INPUT_PULLDOWN);
+  
+  delay(200);
+}
+
+/*
  * @brief API Event handlder to deal with BLE data
  * 
  */

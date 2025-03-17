@@ -14,10 +14,10 @@
 #include <SparkFun_SHTC3.h>
 #include <Wire.h>
 
-/** 21600000 ms = 6 hrs */
-#define REST_TIME 120000
-/** 1800000 ms = 30 mins */
-#define WARM_TIME 30000
+/** 14400000 ms = 4 hrs */
+#define REST_TIME 14400000
+/** 60000 ms = 1 min */
+#define WARM_TIME 1800000
 
 /** RAK19003 UART TXD/RXD
  * TXD = Trigger, RXD = Echo
@@ -41,11 +41,13 @@ void ble_data_handler(void);
 void read_ultra(void);
 void read_shtc3(void);
 void read_batt_lora(void);
+void wake_up();
+void sleep();
 
 /** LoRa struct */
 struct lora_data_s
 {
-    uint8_t temp = 0;
+    int8_t temp = 0;
     uint8_t humi = 0;
     uint8_t level = 0;
     uint8_t batt_1 = 0;
