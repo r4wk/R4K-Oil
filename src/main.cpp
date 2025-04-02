@@ -47,7 +47,6 @@ void setup_app(void)
 bool init_app(void)
 {
   API_LOG("APP", "R4K-Oil started");
-  SHTC3_Status_TypeDef shtc3_status;
   bool init_result;
 
   pinMode(WB_IO4, OUTPUT);
@@ -59,11 +58,9 @@ bool init_app(void)
   pinMode(ECHO_PIN, INPUT);
   
   Wire.begin();
-  shtc3_status = shtc3.begin();
-  if(shtc3_status == SHTC3_Status_Nominal)
+  Wire.setClock(400000);
+  if(shtc3.begin() == SHTC3_Status_Nominal)
   {
-    Wire.setClock(400000);
-
     shtc3.setMode(SHTC3_CMD_CSD_TF_NPM);
     shtc3.sleep();
 
@@ -274,6 +271,14 @@ void wake_up()
 
   pinMode(ECHO_PIN, INPUT);
   delay(50);
+
+  Wire.begin();
+  Wire.setClock(400000);
+  if (shtc3.begin() == SHTC3_Status_Nominal)
+  {
+    shtc3.setMode(SHTC3_CMD_CSD_TF_NPM);
+    shtc3.sleep();
+  }
 }
 
 /**
@@ -296,6 +301,8 @@ void sleep()
   digitalWrite(WB_IO2, LOW);
   delay(100);
   pinMode(WB_IO2, INPUT_PULLDOWN);
+
+  Wire.end();
   
   delay(200);
 }
