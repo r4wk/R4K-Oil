@@ -146,8 +146,8 @@ void read_shtc3(void)
   if(shtc3.passIDcrc) 
   {
     /** -2 Adjustment for MCU/Board heat */
-    int8_t temp = static_cast<int8_t>(shtc3.toDegC()-2);
-    uint8_t humi = static_cast<uint8_t>(shtc3.toPercent()-2);
+    int8_t temp = static_cast<int8_t>(shtc3.toDegC()-1.2);
+    uint8_t humi = static_cast<uint8_t>(shtc3.toPercent());
     oil_lora_data.temp = temp;
     oil_lora_data.humi = humi;
     std::string disp = std::to_string(temp) + "C " + std::to_string(humi) + "%%";
